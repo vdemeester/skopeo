@@ -1,0 +1,32 @@
+FROM golang:alpine AS builder
+
+RUN apk add --no-cache git bash || apk update && apk upgrade
+RUN apk add --no-cache make gcc python2 perl || apk update && apk upgrade
+
+RUN apk add --no-cache \
+    musl-dev \
+    btrfs-progs-dev \
+    lvm2-dev \
+    gpgme-dev \
+    glib-dev || apk update && apk upgrade
+
+RUN apk add --no-cache -X http://nl.alpinelinux.org/alpine/edge/testing ostree-dev
+
+# set working directory
+RUN mkdir -p /go/src/github.com/containers/skopeo
+WORKDIR /go/src/github.com/containers/skopeo
+
+# copy sources (including .git repo)
+COPY . .
+
+# run test and calculate coverage: skip for RELEASE
+RUN make DISABLE_CGO=1 binary-local
+
+FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates
+COPY default-policy.json /etc/containers/policy.json
+COPY --from=builder /go/src/github.com/containers/skopeo/skopeo /usr/local/bin/skopeo
+
+ENTRYPOINT ["/usr/local/bin/skopeo"]
+CMD ["--help"]
