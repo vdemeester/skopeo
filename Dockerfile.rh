@@ -1,0 +1,19 @@
+FROM golang:alpine AS builder
+RUN apk add --no-cache \
+    btrfs-progs-dev \
+    git make gcc \
+    lvm2-dev \
+    gpgme-dev \
+    go-md2man \
+    glib-dev libc-dev
+WORKDIR /app
+COPY . .
+RUN make bin/skopeo
+
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates
+
+COPY --from=builder /app/bin/skopeo /usr/local/bin/skopeo
+COPY --from=builder /app/default-policy.json /etc/containers/policy.json
+
+ENTRYPOINT ["/usr/local/bin/skopeo"]
