@@ -1,14 +1,12 @@
 FROM golang:alpine AS builder
 RUN apk add --no-cache \
-    btrfs-progs-dev \
     git make gcc \
-    lvm2-dev \
     gpgme-dev \
     go-md2man \
     glib-dev libc-dev
 WORKDIR /app
 COPY . .
-RUN make bin/skopeo
+RUN make BUILDTAGS='exclude_graphdriver_btrfs exclude_graphdriver_devicemapper' bin/skopeo
 
 FROM alpine:latest
 RUN apk add --no-cache ca-certificates
